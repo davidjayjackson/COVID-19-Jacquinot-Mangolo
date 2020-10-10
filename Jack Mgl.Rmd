@@ -1,0 +1,111 @@
+---
+title: "Jack Mgl Covidicus"
+author: "David Jackson"
+date: "10/10/2020"
+output: 
+  html_document: 
+    fig_width: 9
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(readr)
+library(tidyr)
+library(dplyr)
+library(lubridate)
+library(ggplot2)
+library(EpiCurve)
+#library(openxlsx)
+library(stringr)
+```
+
+```{r}
+###Importation des donn?es 
+rm(list=ls())
+covidicus <- read.csv("./MyData.csv")
+covidicus$EXTRACTIONDATE<- as.Date(covidicus$EXTRACTIONDATE,format="%Y-%m-%d")
+covidicus$INCDATE <- as.Date(covidicus$INCDATE,format="%Y-%m-%d")
+```
+```{r}
+#structure of data base
+str(covidicus)
+```
+
+### Calculate Daily,  Weekly and Monthly Cases
+
+```{r}
+## MOnthly Cases Count
+monthly_counts <- covidicus %>% select(INCDATE) %>% group_by(Monthly = floor_date(INCDATE,"month")) %>% 
+        summarise(Count =n()) %>% ungroup()
+## Weekly Cases Count
+weekly_counts <- covidicus %>% select(INCDATE) %>% group_by(Weekly = floor_date(INCDATE,"week")) %>% 
+        summarise(Count =n()) %>% ungroup()
+
+daily_counts <- covidicus %>% select(INCDATE) %>% group_by(INCDATE) %>% 
+        summarise(Count =n()) %>% ungroup()
+```
+
+
+#### Histogram: Count of Cases by Date
+
+```{r}
+ggplot(covidicus) +
+  geom_histogram(aes(x = INCDATE, fill = "dodgerblue3")) +
+  scale_x_date(labels = date_format("%m %d %Y"), date_breaks = "week") +
+  theme(legend.position = "bottom",
+         axis.text.x = element_text(angle = 45, hjust = 1))
+
+```
+
+#### Count of Cases  by week
+
+```{r}
+
+ggplot(weekly_counts) + geom_line(aes(x=Weekly,y=Count)) +
+  scale_x_date(date_breaks = "1 week") +
+  theme(axis.text.x=element_text(angle =- 45, vjust = 0.5))
+  
+ggplot(weekly_counts) + geom_col(aes(x=Weekly,y=Count)) +
+   scale_x_date(date_breaks = "1 week") +
+  theme(axis.text.x=element_text(angle =- 45, vjust = 0.5))
+```
+
+### Calculate and Plot Cumulative Cases by Week
+
+```{r}
+weeklyCum <- cumsum(weekly_counts$Count)
+weeklyCum <- as.data.frame(weeklyCum)
+cumulative <- cbind(weekly_counts,weeklyCum)
+```
+```{r}
+monthlyCum <- cumsum(monthly_counts$Count)
+monthlyCum <- as.data.frame(monthlyCum)
+cumulative_monthly <- cbind(monthly_counts,monthlyCum)
+```
+
+### Cumulative Cases by Week
+
+```{r}
+ggplot(cumulative) + geom_line(aes(x=Weekly,y=weeklyCum)) +
+  scale_x_date(date_breaks = "1 week") +
+  theme(axis.text.x=element_text(angle =- 45, vjust = 0.5))
+
+ggplot(cumulative) + geom_col(aes(x=Weekly,y=weeklyCum)) +
+  scale_x_date(date_breaks = "1 week") +
+  theme(axis.text.x=element_text(angle =- 45, vjust = 0.5))
+```
+
+### Cumulative Cases by Month
+
+```{r}
+ggplot(cumulative_monthly) + geom_line(aes(x=Monthly,y=monthlyCum)) +
+  scale_x_date(date_breaks = "1 week") +
+  theme(axis.text.x=element_text(angle =- 45, vjust = 0.5))
+
+ggplot(cumulative_monthly) + geom_col(aes(x=Monthly,y=monthlyCum)) +
+  scale_x_date(date_breaks = "1 week") +
+  theme(axis.text.x=element_text(angle =- 45, vjust = 0.5))
+```
+
+
+
